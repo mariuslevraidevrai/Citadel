@@ -60,10 +60,10 @@ Binaries are generated in `bin/`.
 ### Start the server
 
 ```bash
-./bin/citadel-server -ip 0.0.0.0 -port 9000 -password "YOUR_PASSWORD"
+./bin/citadel-server -ip 0.0.0.0 -port 9000 -password "YOUR_PASSWORD" -dir shared
 ```
 
-The server creates a `shared/` directory for remotely accessible files and generates a self-signed TLS certificate.
+If the dir flag is not set the server creates a `shared/` default directory for remotely accessible files and generates a self-signed TLS certificate.
 
 ### Connect with the client
 
@@ -81,6 +81,7 @@ Replace the IP address with your server's address. Enter the password when promp
 | `ls`, `tree` | Browse files |
 | `cd`, `pwd` | Navigate directories |
 | `cat`, `info` | Read files and inspect metadata |
+| `search` | Search a file |
 | `mkdir`, `touch` | Create directories and files |
 | `rename`, `copy`, `move`, `remove` | Manage files |
 | `upload`, `download` | Transfer files |
