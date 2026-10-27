@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
 	"errors"
 	"flag"
 	"fmt"
@@ -13,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"crypto/tls"
 
 	"github.com/chzyer/readline"
 	"github.com/fatih/color"
@@ -26,7 +26,7 @@ const Banner = `
  ███     ▒▒▒  ████  ███████    ██████    ███████   ██████  ▒███ 
 ▒███         ▒▒███ ▒▒▒███▒    ▒▒▒▒▒███  ███▒▒███  ███▒▒███ ▒███ 
 ▒███          ▒███   ▒███      ███████ ▒███ ▒███ ▒███████  ▒███ 
-▒▒███     ███ ▒███   ▒███ ███ ███▒▒███ ▒███ ▒███ ▒███▒▒▒   ▒███ 
+▒▒███     ███ ▒███   ▒▒███ ███ ███▒▒███ ▒███ ▒███ ▒███▒▒▒   ▒███ 
  ▒▒█████████  █████  ▒▒█████ ▒▒████████▒▒████████▒▒██████  █████
   ▒▒▒▒▒▒▒▒▒  ▒▒▒▒▒    ▒▒▒▒▒   ▒▒▒▒▒▒▒▒  ▒▒▒▒▒▒▒▒  ▒▒▒▒▒▒  ▒▒▒▒▒ 
                                                                 
@@ -39,9 +39,9 @@ func main() {
 	version := flag.Bool("version", false, "Citadel version")
 
 	flag.Parse()
-	if *version{
+	if *version {
 		fmt.Print(Banner)
-		fmt.Printf("Citadel %s\n\n",Version)
+		fmt.Printf("Citadel %s\n\n", Version)
 		fmt.Println("A very fast and secure file server")
 		fmt.Println("For more info visit github.com/mariuslevraidevrai/citadel")
 		return
@@ -65,16 +65,16 @@ func main() {
 	reader := bufio.NewReader(conn)
 	writer := bufio.NewWriter(conn)
 
-    fmt.Print("Enter password: ")
+	fmt.Print("Enter password: ")
 
-    passwordBytes, err := term.ReadPassword(int(os.Stdin.Fd()))
-    if err != nil {
-        panic(err)
-    }
+	passwordBytes, err := term.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		panic(err)
+	}
 
-    password := strings.TrimSpace(string(passwordBytes))
+	password := strings.TrimSpace(string(passwordBytes))
 
-    _ = password
+	_ = password
 
 	fmt.Fprintf(writer, "AUTH %s\n", password)
 	writer.Flush()
@@ -105,6 +105,7 @@ func main() {
 		readline.PcItem("move"),
 		readline.PcItem("upload"),
 		readline.PcItem("download"),
+		readline.PcItem("search"),
 		readline.PcItem("status"),
 		readline.PcItem("quit"),
 	)
@@ -272,7 +273,9 @@ func main() {
 			}
 
 			remoteFile := fields[1]
-			localName := filepath.Base(remoteFile)
+			cleanRemote := strings.TrimSuffix(remoteFile, "/")
+			localName := filepath.Base(cleanRemote) + ".zip"
+
 			if len(fields) == 3 {
 				localName = fields[2]
 			}

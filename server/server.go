@@ -15,7 +15,6 @@ import (
 	"github.com/fatih/color"
 )
 
-const sharedDir = "shared"
 const maxLineSize = 64 * 1024
 const maxFileSize = 64 * 1024
 
@@ -23,6 +22,7 @@ func main() {
 	ip := flag.String("ip", "127.0.0.1", "IP address to listen on")
 	port := flag.Int("port", 9000, "Port to listen on")
 	password := flag.String("password", "citadel", "Password to auth on the server")
+	sharedDir := flag.String("dir", "shared", "Path to the shared directory")
 	
 	flag.Parse()
 
@@ -30,13 +30,18 @@ func main() {
 		log.Fatal(color.YellowString("Port must be between 1 and 65535"))
 	}
 
-	if err := os.MkdirAll(sharedDir, 0750); err != nil {
+	targetDir := *sharedDir
+	if targetDir == "" {
+		targetDir = "shared"
+	}
+
+	if err := os.MkdirAll(targetDir, 0750); err != nil {
 		log.Fatal(color.RedString("Failed to create shared directory: ", err))
 	}
 
 	setPassword(*password)
 
-	root, err := filepath.Abs(sharedDir)
+	root, err := filepath.Abs(targetDir)
 	if err != nil {
 		log.Fatal(color.RedString("Failed to resolve shared directory: ", err))
 	}
@@ -278,7 +283,7 @@ func handleCommand(conn net.Conn, writer *bufio.Writer, command string, cwd *str
 
 	case "download":
 		if len(args) < 1 || len(args) > 2 {
-			return color.YellowString("usage: download <remote_file> [local_name]"), false, ""
+			return color.YellowString("usage: download <remote_path> [local_name]"), false, ""
 		}
 		path, err := resolveSharedPath(root, *cwd, args[0])
 		if err != nil {
@@ -286,15 +291,25 @@ func handleCommand(conn net.Conn, writer *bufio.Writer, command string, cwd *str
 			writer.Flush()
 			return "", false, ""
 		}
-		if _, err := os.Stat(path); err != nil {
-			writer.WriteString("ERROR: file does not exist\nEND\n")
+
+		info, err := os.Stat(path)
+		if err != nil {
+			writer.WriteString("ERROR: file or directory does not exist\nEND\n")
 			writer.Flush()
 			return "", false, ""
 		}
+
 		writer.WriteString("READY\n")
 		writer.Flush()
-		if err := handleDownload(conn, path); err != nil {
-			log.Printf("Download error: %v", err)
+
+		if info.IsDir() {
+			if err := handleDownloadDir(conn, path); err != nil {
+				log.Printf("Download directory error: %v", err)
+			}
+		} else {
+			if err := handleDownload(conn, path); err != nil {
+				log.Printf("Download error: %v", err)
+			}
 		}
 		return "", false, ""
 
@@ -319,6 +334,12 @@ func handleCommand(conn net.Conn, writer *bufio.Writer, command string, cwd *str
 			return color.RedString("error: upload failed"), false, ""
 		}
 		return "", false, ""
+		
+	case "search":
+		if len(args) != 1 {
+			return color.YellowString("usage: search <query>"), false, ""
+		}
+		return searchFiles(root, *cwd, args[0]), false, ""
 
 	case "quit", "bye":
 		return "\nGoodbye", true, ""

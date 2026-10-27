@@ -21,6 +21,7 @@ func help(args []string) string {
 		"cat":      "cat <file> - display a file",
 		"tree":     "tree [directory] - display directory tree",
 		"info":     "info <name> - display item details",
+		"search": "search <query> - search for files or directories matching query",
 		"rename":   "rename <old> <new> - rename an item",
 		"mkdir":    "mkdir <name> - create a directory",
 		"touch":    "touch <name> - create an empty file",
@@ -322,4 +323,46 @@ func resolveSharedPath(root, cwd, name string) (string, error) {
 	}
 
 	return target, nil
+}
+func searchFiles(root, cwd, query string) string {
+	basePath, err := resolveSharedPath(root, cwd, ".")
+	if err != nil {
+		return color.RedString("error: invalid path")
+	}
+
+	var matches []string
+
+	err = filepath.WalkDir(basePath, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if strings.Contains(strings.ToLower(entry.Name()), strings.ToLower(query)) {
+			rel, err := filepath.Rel(basePath, path)
+			if err == nil && rel != "." {
+				if entry.IsDir() {
+					matches = append(matches, color.BlueString(rel+"/"))
+				} else {
+					matches = append(matches, color.WhiteString(rel))
+				}
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		return color.RedString("error: search failed")
+	}
+
+	if len(matches) == 0 {
+		return color.YellowString("No matches found for: " + query)
+	}
+
+	var sb strings.Builder
+	sb.WriteString(color.YellowString("Search results for '%s':\n", query))
+	for _, match := range matches {
+		sb.WriteString(fmt.Sprintf("  %s\n", match))
+	}
+
+	return strings.TrimRight(sb.String(), "\n")
 }
