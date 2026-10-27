@@ -63,7 +63,7 @@ Binaries are generated in `bin/`.
 ./bin/citadel-server -ip 0.0.0.0 -port 9000 -password "YOUR_PASSWORD" -dir shared
 ```
 
-If the dir flag is not set the server creates a `shared/` default directory for remotely accessible files and generates a self-signed TLS certificate.
+If the dir flag is not set, the server creates a `shared/` default directory for remotely accessible files and generates a self-signed TLS certificate.
 
 ### Connect with the client
 
